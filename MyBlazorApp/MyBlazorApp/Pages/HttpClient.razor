@@ -1,0 +1,61 @@
+﻿@page "/httpClient"
+@using MyBlazorApp.Data;
+@using Syncfusion.Blazor.PivotView;
+@using Syncfusion.Blazor.Data;
+@using System.Data.SqlClient;
+@using System.Text.Json;
+
+@inject NavigationManager navigationManager
+
+<SfPivotView TValue="Order" Width="650" Height="340" EnableVirtualization="true" ShowFieldList="false" ShowTooltip=false>
+    <PivotViewDataSourceSettings TValue="Order">
+        <SfDataManager Url="api/Pivot" Adaptor="Adaptors.WebApiAdaptor"></SfDataManager>
+        <PivotViewColumns>
+            <PivotViewColumn Name="ShipName"></PivotViewColumn>
+        </PivotViewColumns>
+        <PivotViewRows>
+            <PivotViewRow Name="CustomerID" ExpandAll=true></PivotViewRow>
+            <PivotViewRow Name="OrderDate"></PivotViewRow>
+        </PivotViewRows>
+        <PivotViewValues>
+            <PivotViewValue Name="Freight"></PivotViewValue>
+        </PivotViewValues>
+        <PivotViewFormatSettings>
+            <PivotViewFormatSetting Name="Freight" Type="FormatType.Number" Format="N2"></PivotViewFormatSetting>
+            <PivotViewFormatSetting Name="OrderDate" Type="FormatType.DateTime" Format="dd/MM/yyyy"></PivotViewFormatSetting>
+        </PivotViewFormatSettings>
+    </PivotViewDataSourceSettings>
+    <PivotViewCellEditSettings AllowEditing=true AllowAdding=true AllowDeleting=true></PivotViewCellEditSettings>
+    <PivotViewEvents TValue="Order" EditCompleted="EditCompleted"></PivotViewEvents>
+</SfPivotView>
+
+@code{
+    private async Task EditCompleted(EditCompletedEventArgs<Order> args)
+    {
+        // The modified order data can be obtained from "args.ModifiedData" and used to update specified data in the SQL database.
+        if (args.ModifiedData?.Count > 0)
+        {
+            await PostAsync("Update", args.ModifiedData);
+        }
+        // The removed order data can be obtained from "args.RemovedData" and used to delete specified data from the SQL database.
+        if (args.RemovedData?.Count > 0)
+        {
+            await PostAsync("Delete", args.RemovedData);
+        }
+        // The newly added order data can be obtained from "args.AddedaData" and used to add specified data to the SQL database.
+        if (args.AddedData?.Count > 0)
+        {
+            await PostAsync("Add", args.AddedData);
+        }
+    }
+
+    private async Task PostAsync<T>(string path, T data)
+    {
+        string url = navigationManager.BaseUri + "api/Pivot/" + path;
+        HttpContent content = new StringContent(JsonSerializer.Serialize<T>(data), System.Text.Encoding.UTF8, "application/json");
+        using (System.Net.Http.HttpClient httpClient = new System.Net.Http.HttpClient())
+        {
+            HttpResponseMessage response = await httpClient.PostAsync(url, content);
+        }
+    }
+}

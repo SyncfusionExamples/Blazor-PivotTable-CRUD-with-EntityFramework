@@ -1,0 +1,57 @@
+﻿@page "/"
+@using MyBlazorApp.Data
+@using Syncfusion.Blazor.PivotView
+@using Syncfusion.Blazor.Data
+
+@inject OrderDataAccessLayer Orders;
+
+<SfPivotView TValue="Order" Width="650" Height="340" EnableVirtualization="true" ShowFieldList="false" ShowTooltip=false>
+    <PivotViewDataSourceSettings TValue="Order" DataSource="@Orders.GetAllOrders()">
+        <PivotViewColumns>
+            <PivotViewColumn Name="ShipName"></PivotViewColumn>
+        </PivotViewColumns>
+        <PivotViewRows>
+            <PivotViewRow Name="CustomerID" ExpandAll=true></PivotViewRow>
+            <PivotViewRow Name="OrderDate"></PivotViewRow>
+        </PivotViewRows>
+        <PivotViewValues>
+            <PivotViewValue Name="Freight"></PivotViewValue>
+        </PivotViewValues>
+        <PivotViewFormatSettings>
+            <PivotViewFormatSetting Name="Freight" Type="FormatType.Number" Format="N2"></PivotViewFormatSetting>
+            <PivotViewFormatSetting Name="OrderDate" Type="FormatType.DateTime" Format="dd/MM/yyyy"></PivotViewFormatSetting>
+        </PivotViewFormatSettings>
+    </PivotViewDataSourceSettings>
+    <PivotViewCellEditSettings AllowEditing=true AllowAdding=true AllowDeleting=true></PivotViewCellEditSettings>
+    <PivotViewEvents TValue="Order" EditCompleted="EditCompleted"></PivotViewEvents>
+</SfPivotView>
+
+@code{
+    private void EditCompleted(EditCompletedEventArgs<Order> args)
+    {
+        // The modified orders can be obtained from "args.ModifiedData" and used to update specified records in the SQL database.
+        if (args.ModifiedData?.Count > 0)
+        {
+            foreach (var key in args.ModifiedData.Keys)
+            {
+                Orders.UpdateOrder(args.ModifiedData[key]);
+            }
+        }
+        // The removed orders can be obtained from "args.RemovedData" and used to delete specified records in the SQL database.
+        if (args.RemovedData?.Count > 0)
+        {
+            foreach (int key in args.RemovedData.Keys)
+            {
+                Orders.DeleteOrder(args.RemovedData[key].OrderID);
+            }
+        }
+        // The newly added orders can be obtained from "args.AddedaData" and used to add specified records to the SQL database.
+        if (args.AddedData?.Count > 0)
+        {
+            foreach (Order order in args.AddedData)
+            {
+                Orders.AddOrder(order);
+            }
+        }
+    }
+}
